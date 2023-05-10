@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
+using WebApiStore.Entities;
 
 namespace WebApiStore
 {
@@ -13,5 +15,7 @@ namespace WebApiStore
         {
             base.OnModelCreating(modelBuilder);
         }
+
+        public DbSet<Product> Products { get; set; }
     }
 }
