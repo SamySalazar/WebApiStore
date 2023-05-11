@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -10,6 +12,7 @@ namespace WebApiStore.Controllers
 {
     [ApiController]
     [Route("api/products")]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ProductsController : ControllerBase
     {
         private readonly ApplicationDbContext dbContext;
@@ -87,7 +90,25 @@ namespace WebApiStore.Controllers
             await dbContext.SaveChangesAsync();
             return NoContent();
         }
+        
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            var exist = await dbContext.Products.AnyAsync(x => x.Id == id);
+            if (!exist)
+            {
+                return NotFound();
+            }
 
+            dbContext.Remove(new Product()
+            {
+                Id = id
+            });
+            await dbContext.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // Método para guardar imagen en memoria
         private async Task<string> saveImage(IFormFile image)
         {
             using var stream = new MemoryStream();

@@ -30,7 +30,7 @@ namespace WebApiStore.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<AuthenticationResponse>> Register(RegisterUser registerUser)
+        public async Task<ActionResult<AuthenticationResponse>> Register([FromForm] RegisterUser registerUser)
         {
             var usuario = new IdentityUser
             {
@@ -57,7 +57,7 @@ namespace WebApiStore.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<AuthenticationResponse>> Login(UserCredentials userCredentials)
+        public async Task<ActionResult<AuthenticationResponse>> Login([FromForm] UserCredentials userCredentials)
         {
             var result = await signInManager.PasswordSignInAsync(userCredentials.UserName,
                 userCredentials.Password, isPersistent: false, lockoutOnFailure: false);
@@ -88,7 +88,7 @@ namespace WebApiStore.Controllers
         // Endpoints para hacer administradores y eliminarlos
         [HttpPost("makeAdmin")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "Admin")]
-        public async Task<ActionResult> MakeAdmin(EditAdmin editAdmin)
+        public async Task<ActionResult> MakeAdmin([FromForm] EditAdmin editAdmin)
         {
             var user = await userManager.FindByNameAsync(editAdmin.UserName);
             await userManager.AddClaimAsync(user, new Claim("admin", "true"));
@@ -97,7 +97,7 @@ namespace WebApiStore.Controllers
 
         [HttpPost("removeAdmin")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "Admin")]
-        public async Task<ActionResult> RemoveAdmin(EditAdmin editAdmin)
+        public async Task<ActionResult> RemoveAdmin([FromForm] EditAdmin editAdmin)
         {
             var user = await userManager.FindByNameAsync(editAdmin.UserName);
             await userManager.RemoveClaimAsync(user, new Claim("admin", "true"));

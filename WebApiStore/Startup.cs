@@ -76,9 +76,6 @@ namespace WebApiStore
             services.AddAutoMapper(typeof(Startup));
 
             // Servicio para controlar archivos
-            //services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            // services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            // services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IFileStorage, LocalFileStorage>();
             services.AddHttpContextAccessor();
 
