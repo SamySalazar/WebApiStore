@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using WebApiStore.Services;
 
 namespace WebApiStore
 {
@@ -71,8 +73,11 @@ namespace WebApiStore
                     }
                 });
             });
-
             services.AddAutoMapper(typeof(Startup));
+
+            // Servicio para controlar archivos
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+            services.AddHttpContextAccessor();
 
             // Servicios de autenticación
             services.AddIdentity<IdentityUser, IdentityRole>()
@@ -95,6 +100,8 @@ namespace WebApiStore
             }
 
             app.UseHttpsRedirection();
+
+            app.UseStaticFiles();
 
             app.UseRouting();
 
