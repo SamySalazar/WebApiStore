@@ -12,7 +12,7 @@ namespace WebApiStore.Controllers
 {
     [ApiController]
     [Route("api/products")]
-    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ProductsController : ControllerBase
     {
         private readonly ApplicationDbContext dbContext;
@@ -48,6 +48,7 @@ namespace WebApiStore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult> Post([FromForm] ProductDTO productDTO)
         {
             var product = mapper.Map<Product>(productDTO);
@@ -66,6 +67,7 @@ namespace WebApiStore.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult> Put(int id, [FromForm] ProductDTO productDTO)
         {
             var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id);
@@ -92,6 +94,7 @@ namespace WebApiStore.Controllers
         }
         
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult> Delete(int id)
         {
             var exist = await dbContext.Products.AnyAsync(x => x.Id == id);

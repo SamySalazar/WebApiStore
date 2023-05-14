@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System.Data;
 using System.Net.WebSockets;
 using WebApiStore.DTOs.Order;
 using WebApiStore.DTOs.Product;
 using WebApiStore.Entities;
+using WebApiStore.Migrations;
 
 namespace WebApiStore.Controllers
 {
@@ -112,6 +114,67 @@ namespace WebApiStore.Controllers
             //var infoDTO2 = mapper.Map<OrderShoppingCartInfoDTO>(order);
             //return new CreatedAtRouteResult("AddToShoppingCart", infoDTO2);
             return Ok();
-        }        
+        }
+
+        [HttpDelete("CancelShoppingCar")]
+        public async Task<ActionResult> DeleteShoppingCar()
+        {
+            // Obtener datos de usuario
+            var userNameClaim = HttpContext.User.Claims.Where(claim => claim.Type == "userName").FirstOrDefault();
+            var userName = userNameClaim.Value;
+            var user = await userManager.FindByNameAsync(userName);
+            var userId = user.Id;
+
+            // Validar si ya tiene una carrio de compras activo
+            var shoppingCart = await dbContext.Orders
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.ShoppingCart);
+
+            if (shoppingCart == null)
+            {
+                return NotFound("No hay un carrito de compras activo");
+            }
+
+            dbContext.Remove(shoppingCart);
+            await dbContext.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpDelete("RemoveProductShoppingCar/{productId:int}")]
+        public async Task<ActionResult> DeleteProductSC (int productId)
+        {
+            var product = await dbContext.Products.FirstOrDefaultAsync(
+                x => x.Id == productId);
+            if (product == null)
+            {
+                return BadRequest("No existe el producto requerido");
+            }
+
+            var productPrice = product.Price;
+
+            // Obtener datos de usuario
+            var userNameClaim = HttpContext.User.Claims.Where(claim => claim.Type == "userName").FirstOrDefault();
+            var userName = userNameClaim.Value;
+            var user = await userManager.FindByNameAsync(userName);
+            var userId = user.Id;
+
+            // Validar si ya tiene una carrio de compras activo
+            var shoppingCart = await dbContext.Orders
+                .Include(x => x.OrdersProducts)
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.ShoppingCart);
+
+            if (shoppingCart == null)
+            {
+                return NotFound("No hay un carrito de compras activo");
+            }
+            var index = shoppingCart.OrdersProducts.FindIndex(x => x.ProductId == productId);
+            var quantity = shoppingCart.OrdersProducts[index].Quantity;
+
+            shoppingCart.Total -= productPrice * quantity;            
+            dbContext.Entry(shoppingCart).State = EntityState.Modified;
+
+            dbContext.Remove(shoppingCart.OrdersProducts[index]);
+            await dbContext.SaveChangesAsync();
+            return Ok();
+        }
     }
 }
