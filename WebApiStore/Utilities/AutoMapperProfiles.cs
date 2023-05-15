@@ -21,7 +21,10 @@ namespace WebApiStore.Utilities
                 .ReverseMap();
 
             CreateMap<ProductDTO, Product>()
-                .ForMember(m => m.Image, options => options.Ignore());
+                .ForMember(m => m.Image, options => options.Ignore());                
+
+            CreateMap<ProductPatchDTO, Product>()
+                .ReverseMap();
 
             // ------------- Orders -------------
             CreateMap<OrderDTO, Order>()
