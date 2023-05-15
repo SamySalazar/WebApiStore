@@ -11,6 +11,7 @@ using WebApiStore.DTOs.Order;
 using WebApiStore.DTOs.Product;
 using WebApiStore.Entities;
 using WebApiStore.Migrations;
+using WebApiStore.Services;
 
 namespace WebApiStore.Controllers
 {
@@ -32,6 +33,35 @@ namespace WebApiStore.Controllers
             this.userManager = userManager;
         }
 
+        // Historial de pedidos de todos los usuarios
+        [HttpGet("GetOrders")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult<List<OrderInfoDTO>>> GetOrders()
+        {
+            var orders = await dbContext.Orders
+                .Include(x => x.User)
+                .Include(x => x.OrdersProducts)
+                .ThenInclude(x => x.Product)
+                .Where(x => !x.ShoppingCart).ToListAsync();
+            return mapper.Map<List<OrderInfoDTO>>(orders);
+        }
+
+        // Historial de pedidos del usuario
+        [HttpGet("GetOrdersByUser")]
+        public async Task<ActionResult<List<OrderInfoDTO>>> GetOrdersByUser()
+        {
+            var userNameClaim = HttpContext.User.Claims.Where(claim => claim.Type == "userName").FirstOrDefault();
+            var userName = userNameClaim.Value;
+            var user = await userManager.FindByNameAsync(userName);
+            var userId = user.Id;
+
+            var orders = await dbContext.Orders
+                .Include(x => x.OrdersProducts)
+                .ThenInclude(x => x.Product)
+                .Where(x => x.UserId == userId && !x.ShoppingCart).ToListAsync();
+            return mapper.Map<List<OrderInfoDTO>>(orders);
+        }
+
         // Consultar carrito
         [HttpGet("GetShoppingCart")]
         public async Task<ActionResult<OrderShoppingCartInfoDTO>> GetShoppingCart()
@@ -44,7 +74,11 @@ namespace WebApiStore.Controllers
             var order = await dbContext.Orders
                 .Include(x => x.OrdersProducts)
                 .ThenInclude(x => x.Product)
-                .FirstOrDefaultAsync(x => x.UserId == userId);
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.ShoppingCart);
+            if (order == null)
+            {
+                return BadRequest("No tiene un carrito de compras activo");
+            }
 
             return mapper.Map<OrderShoppingCartInfoDTO>(order);
         }
@@ -58,6 +92,12 @@ namespace WebApiStore.Controllers
             if (product == null)
             {
                 return BadRequest("No existe el producto requerido");
+            }
+
+            // Validación de stock
+            if (product.Stock < orderDTO.Quantity)
+            {
+                return BadRequest("No hay suficiente stock para este pedido");
             }
 
             // Obtener datos de usuario
@@ -114,6 +154,38 @@ namespace WebApiStore.Controllers
             //var infoDTO2 = mapper.Map<OrderShoppingCartInfoDTO>(order);
             //return new CreatedAtRouteResult("AddToShoppingCart", infoDTO2);
             return Ok();
+        }
+
+        [HttpPut("ConfirmOrder")]
+        public async Task<ActionResult> PutConfirmOrder([FromForm] ConfirmOrderDTO confirmOrderDTO)
+        {
+            var userNameClaim = HttpContext.User.Claims.Where(claim => claim.Type == "userName").FirstOrDefault();
+            var userName = userNameClaim.Value;
+            var user = await userManager.FindByNameAsync(userName);
+            var userId = user.Id;
+
+            var order = await dbContext.Orders
+                .Include(x => x.OrdersProducts)
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.ShoppingCart);
+            if (order == null)
+            {
+                return BadRequest("No tiene un carrito de compras activo");
+            }
+
+            mapper.Map(confirmOrderDTO, order);
+            order.ShoppingCart = false;
+            order.Status = "En proceso";
+
+            foreach (var orderProduct in order.OrdersProducts)
+            {
+                var product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == orderProduct.ProductId);
+                product.Stock -= orderProduct.Quantity;
+                dbContext.Entry(product).State = EntityState.Modified;
+            }
+            
+            dbContext.Entry(order).State = EntityState.Modified;
+            await dbContext.SaveChangesAsync();
+            return NoContent();
         }
 
         [HttpDelete("CancelShoppingCar")]

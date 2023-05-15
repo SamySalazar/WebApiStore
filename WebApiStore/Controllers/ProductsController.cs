@@ -92,7 +92,24 @@ namespace WebApiStore.Controllers
             await dbContext.SaveChangesAsync();
             return NoContent();
         }
-        
+
+        [HttpPut("Stock/{id:int}")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult> PutStock(int id, [FromForm] int stock)
+        {
+            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            product.Stock += stock;
+
+            dbContext.Entry(product).State = EntityState.Modified;
+            await dbContext.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpDelete("{id:int}")]
         [Authorize(Policy = "Admin")]
         public async Task<ActionResult> Delete(int id)

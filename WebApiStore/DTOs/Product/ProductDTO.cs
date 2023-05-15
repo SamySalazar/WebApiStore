@@ -18,8 +18,11 @@ namespace WebApiStore.DTOs.Product
 
         [Required]
         public decimal Price { get; set; }
-
+     
         [FileExtension(new[] { "image/png", "image/jpg", "image/gif", "image/jpeg" })]
-        public IFormFile Image { get; set; }        
+        public IFormFile Image { get; set; }
+
+        [Required]
+        public int Stock { get; set; }
     }
 }

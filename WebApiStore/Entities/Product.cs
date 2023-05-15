@@ -13,6 +13,7 @@ namespace WebApiStore.Entities
         public string Category { get; set; }
         public decimal Price { get; set; }
         public string Image { get; set; }
+        public int Stock { get; set; }
         public List<OrderProduct> OrdersProducts { get; set; }
     }
 }
