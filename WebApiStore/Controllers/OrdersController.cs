@@ -33,6 +33,7 @@ namespace WebApiStore.Controllers
             this.userManager = userManager;
         }
 
+        // Only Admin
         // Historial de pedidos de todos los usuarios
         [HttpGet("GetOrders")]
         [Authorize(Policy = "Admin")]
@@ -156,6 +157,7 @@ namespace WebApiStore.Controllers
             return Ok();
         }
 
+        // Confirmar compra
         [HttpPut("ConfirmOrder")]
         public async Task<ActionResult> PutConfirmOrder([FromForm] ConfirmOrderDTO confirmOrderDTO)
         {
@@ -176,6 +178,7 @@ namespace WebApiStore.Controllers
             order.ShoppingCart = false;
             order.Status = "En proceso";
 
+            // Restar productos del stock
             foreach (var orderProduct in order.OrdersProducts)
             {
                 var product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == orderProduct.ProductId);
@@ -186,6 +189,32 @@ namespace WebApiStore.Controllers
             dbContext.Entry(order).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();
             return NoContent();
+        }
+
+        // Only Admin
+        // Update Status
+        [HttpPut("UpdateStatus/{orderId:int}")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult> PutStatus(int orderId)
+        {
+            var order = await dbContext.Orders
+                .Include(x => x.OrdersProducts)
+                .FirstOrDefaultAsync(x => x.Id == orderId && !x.ShoppingCart);
+            if (order == null)
+            {
+                return BadRequest("El pedido seleccionado no existe");
+            }
+
+            if (order.Status == "Entregado")
+            {
+                return BadRequest("No se actualizó el status, porque el pedido ya fue entnregado");
+            }
+
+            order.Status = order.Status == "En proceso" ? "En camino" : "Entregado";             
+
+            dbContext.Entry(order).State = EntityState.Modified;
+            await dbContext.SaveChangesAsync();
+            return Ok($"El estatus de pedido fue cambiado a {order.Status}");
         }
 
         [HttpDelete("CancelShoppingCar")]
