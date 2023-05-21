@@ -2,6 +2,7 @@
 using Azure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,15 +21,18 @@ namespace WebApiStore.Controllers
         private readonly ApplicationDbContext dbContext;
         private readonly IMapper mapper;
         private readonly IFileStorage fileStorage;
+        private readonly UserManager<IdentityUser> userManager;
 
         public ProductsController(ApplicationDbContext dbContext, 
             IMapper mapper,
-            IFileStorage fileStorage)
+            IFileStorage fileStorage,
+            UserManager<IdentityUser> userManager)
         {
             this.dbContext = dbContext;
             this.mapper = mapper;
             this.fileStorage = fileStorage;
-        }
+            this.userManager = userManager;
+        }      
 
         [HttpGet]
         public async Task<ActionResult<List<ProductInfoDTO>>> GetList()
@@ -47,6 +51,44 @@ namespace WebApiStore.Controllers
                 return NotFound();
             }
             return mapper.Map<ProductInfoDTO>(product);
+        }
+
+        [HttpGet("SearchProduct")]
+        public async Task<ActionResult<List<ProductInfoDTO>>> GetSearchProduct([FromQuery] string name, [FromQuery] string category)
+        {
+            var products = await dbContext.Products
+                .Where(x => (x.Name.Contains(name) || string.IsNullOrEmpty(name)) &&
+                            (x.Category == category || string.IsNullOrEmpty(category)))
+                .ToListAsync();
+            return mapper.Map<List<ProductInfoDTO>>(products);
+        }
+
+        [HttpGet("Recommendations")]
+        public async Task<ActionResult<List<ProductInfoDTO>>> GetRecommendations()
+        {
+            var userNameClaim = HttpContext.User.Claims.Where(claim => claim.Type == "userName").FirstOrDefault();
+            var userName = userNameClaim.Value;
+            var user = await userManager.FindByNameAsync(userName);
+            var userId = user.Id;
+
+            var maxCategory = dbContext.Products                
+                .Join(dbContext.OrdersProducts, p => p.Id, op => op.ProductId, (p, op) => new { Product = p, OrderProduct = op })
+                .Join(dbContext.Orders, j => j.OrderProduct.OrderId, o => o.Id, (j, o) => new { j.Product, j.OrderProduct, Order = o })
+                .Where(j => j.Order.UserId == userId)
+                .GroupBy(j => new { j.Product.Category, j.Order.UserId })
+                .Select(g => new { Category = g.Key.Category, UserId = g.Key.UserId, Quantity = g.Sum(p => p.OrderProduct.Quantity) })
+                .OrderByDescending(g => g.Quantity)
+                .FirstOrDefault();
+
+            Console.WriteLine("Category: " + maxCategory?.Category);
+            Console.WriteLine("UserId: " + maxCategory?.UserId);
+            Console.WriteLine("Quantity: " + maxCategory?.Quantity);
+
+            var products = await dbContext.Products
+                .Where(x => x.Category == maxCategory.Category)
+                .ToListAsync();
+
+            return mapper.Map<List<ProductInfoDTO>>(products);
         }
 
         [HttpPost]
