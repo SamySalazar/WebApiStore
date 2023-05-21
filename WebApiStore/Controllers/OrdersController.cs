@@ -1,17 +1,25 @@
 ﻿using AutoMapper;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
+using MimeKit;
+using MimeKit.Text;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Net.WebSockets;
+using WebApiStore.DTOs.Email;
 using WebApiStore.DTOs.Order;
 using WebApiStore.DTOs.Product;
 using WebApiStore.Entities;
 using WebApiStore.Migrations;
 using WebApiStore.Services;
+using WebApiStore.Services.EmailService;
 
 namespace WebApiStore.Controllers
 {
@@ -23,14 +31,17 @@ namespace WebApiStore.Controllers
         private readonly ApplicationDbContext dbContext;
         private readonly IMapper mapper;
         private readonly UserManager<IdentityUser> userManager;
+        private readonly IEmailService emailService;
 
         public OrdersController(ApplicationDbContext dbContext,
             IMapper mapper,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            IEmailService emailService)
         {
             this.dbContext = dbContext;
             this.mapper = mapper;
             this.userManager = userManager;
+            this.emailService = emailService;
         }
 
         // Only Admin
@@ -198,6 +209,7 @@ namespace WebApiStore.Controllers
         public async Task<ActionResult> PutStatus(int orderId)
         {
             var order = await dbContext.Orders
+                .Include(x => x.User)
                 .Include(x => x.OrdersProducts)
                 .FirstOrDefaultAsync(x => x.Id == orderId && !x.ShoppingCart);
             if (order == null)
@@ -210,7 +222,17 @@ namespace WebApiStore.Controllers
                 return BadRequest("No se actualizó el status, porque el pedido ya fue entnregado");
             }
 
-            order.Status = order.Status == "En proceso" ? "En camino" : "Entregado";             
+            order.Status = order.Status == "En proceso" ? "En camino" : "Entregado";
+
+
+            EmailDTO request = new EmailDTO();
+            request.Subject = "Estado de pedido";
+            request.Body = $"<h1> Su pedido {order.Id} fue actualizado </h1><br>" +
+                           "<b>Detalles del pedido:</b><br>" +
+                           $"<ul><li>No. De pedido: {order.Id}</li><li>Estado: {order.Status}</li><li>Total: {order.Total}</li></ul>";
+            request.To = order.User.Email;
+
+            emailService.SendEmail(request);
 
             dbContext.Entry(order).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();

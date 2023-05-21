@@ -88,19 +88,6 @@ namespace WebApiStore.Controllers
                 .Where(x => x.Category == maxCategory.Category)
                 .ToListAsync();
 
-            //var maxCategory = await dbContext.Products
-            //    .GroupBy(p => p.Category)
-            //    .Select(g => new { Cat = g.Key, Count = g.Count() })
-            //    .OrderByDescending(g => g.Count)
-            //    .FirstOrDefaultAsync();
-
-            //var products = await dbContext.Products
-            //    .Include(x => x.OrdersProducts)
-            //    .ThenInclude(x => x.Order)
-            //    .ThenInclude(x => x.User)
-            //    .Where(x => x.Category == maxCategory.Cat && x.OrdersProducts[])
-            //    .ToListAsync();
-
             return mapper.Map<List<ProductInfoDTO>>(products);
         }
 

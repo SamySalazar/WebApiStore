@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using WebApiStore.Services;
+using WebApiStore.Services.EmailService;
 
 namespace WebApiStore
 {
@@ -78,6 +79,9 @@ namespace WebApiStore
             // Servicio para controlar archivos
             services.AddSingleton<IFileStorage, LocalFileStorage>();
             services.AddHttpContextAccessor();
+
+            // Servicio Email
+            services.AddScoped<IEmailService, EmailService>();
 
             // Servicios de autenticación
             services.AddIdentity<IdentityUser, IdentityRole>()
