@@ -187,7 +187,7 @@ namespace WebApiStore.Controllers
 
             mapper.Map(confirmOrderDTO, order);
             order.ShoppingCart = false;
-            order.Status = "en ruta";
+            order.Status = "en proceso";
 
             // Restar productos del stock
             foreach (var orderProduct in order.OrdersProducts)
