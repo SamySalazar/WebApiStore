@@ -187,7 +187,7 @@ namespace WebApiStore.Controllers
 
             mapper.Map(confirmOrderDTO, order);
             order.ShoppingCart = false;
-            order.Status = "En proceso";
+            order.Status = "en proceso";
 
             // Restar productos del stock
             foreach (var orderProduct in order.OrdersProducts)
@@ -217,19 +217,23 @@ namespace WebApiStore.Controllers
                 return BadRequest("El pedido seleccionado no existe");
             }
 
-            if (order.Status == "Entregado")
+            if (order.Status == "entregada")
             {
-                return BadRequest("No se actualizó el status, porque el pedido ya fue entnregado");
+                return BadRequest("No se actualizó el estatus, porque el pedido ya fue entregado");
             }
 
-            order.Status = order.Status == "En proceso" ? "En camino" : "Entregado";
+            order.Status = order.Status == "en proceso" ? "en ruta" : "entregada";
 
 
             EmailDTO request = new EmailDTO();
-            request.Subject = "Estado de pedido";
-            request.Body = $"<h1> Su pedido {order.Id} fue actualizado </h1><br>" +
+            request.Subject = $"Estatus de Pedido #{order.Id} | High Tech";
+            request.Body = $"<h1>Orden #{order.Id} {order.Status}</h1><br>" +
+                           $"<h3>Hola {order.User}, te adjuntamos los datos de tu compra.</h3>" +
                            "<b>Detalles del pedido:</b><br>" +
-                           $"<ul><li>No. De pedido: {order.Id}</li><li>Estado: {order.Status}</li><li>Total: {order.Total}</li></ul>";
+                           $"<ul><li><b>No. Pedido:</b> {order.Id}</li><li><b>Estado:</b> {order.Status}</li><li><b>Total:</b> ${order.Total}</li></ul>" +
+                           "<br>¿Tiene preguntas o comentarios? Puede ponerse en contacto con nosotros en cualquier momento en +52(81)19877896, o htech.soporte1@gmail.com" +
+                           "<br><br><br>Atte.<br><b>High Tech</b>" +
+                           "<br><br><br>© 2023 High Tech. Todos los derechos reservados.";
             request.To = order.User.Email;
 
             emailService.SendEmail(request);
