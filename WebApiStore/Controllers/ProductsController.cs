@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using WebApiStore.DTOs.Product;
 using WebApiStore.Entities;
+using WebApiStore.Filters;
 using WebApiStore.Services;
 
 namespace WebApiStore.Controllers
@@ -22,21 +23,26 @@ namespace WebApiStore.Controllers
         private readonly IMapper mapper;
         private readonly IFileStorage fileStorage;
         private readonly UserManager<IdentityUser> userManager;
+        private readonly ILogger<ProductsController> logger;
 
         public ProductsController(ApplicationDbContext dbContext, 
             IMapper mapper,
             IFileStorage fileStorage,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            ILogger<ProductsController> logger)
         {
             this.dbContext = dbContext;
             this.mapper = mapper;
             this.fileStorage = fileStorage;
             this.userManager = userManager;
+            this.logger = logger;
         }      
 
         [HttpGet]
+        [ServiceFilter(typeof(ActionFilter))]
         public async Task<ActionResult<List<ProductInfoDTO>>> GetList()
         {
+            // throw new NotImplementedException();
             var products = await dbContext.Products.ToListAsync();
             return mapper.Map<List<ProductInfoDTO>>(products);
         }
@@ -134,6 +140,7 @@ namespace WebApiStore.Controllers
 
             dbContext.Entry(product).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return NoContent();
         }
 
@@ -151,6 +158,7 @@ namespace WebApiStore.Controllers
 
             dbContext.Entry(product).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return NoContent();
         }
 
@@ -183,6 +191,7 @@ namespace WebApiStore.Controllers
             mapper.Map(productPatchDTO, productDB);
 
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return NoContent();
         }
 
@@ -201,6 +210,7 @@ namespace WebApiStore.Controllers
                 Id = id
             });
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se eliminó correctamente");
             return NoContent();
         }
 

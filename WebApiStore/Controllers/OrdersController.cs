@@ -32,16 +32,19 @@ namespace WebApiStore.Controllers
         private readonly IMapper mapper;
         private readonly UserManager<IdentityUser> userManager;
         private readonly IEmailService emailService;
+        private readonly ILogger<OrdersController> logger;
 
         public OrdersController(ApplicationDbContext dbContext,
             IMapper mapper,
             UserManager<IdentityUser> userManager,
-            IEmailService emailService)
+            IEmailService emailService,
+            ILogger<OrdersController> logger)
         {
             this.dbContext = dbContext;
             this.mapper = mapper;
             this.userManager = userManager;
             this.emailService = emailService;
+            this.logger = logger;
         }
 
         // Only Admin
@@ -145,7 +148,8 @@ namespace WebApiStore.Controllers
 
                 //var infoDTO1 = mapper.Map<OrderShoppingCartInfoDTO>(shoppingCart);
                 //return new CreatedAtRouteResult("AddToShoppingCart", infoDTO1);
-                return Ok();
+                logger.LogInformation("Se agregó correctamente");
+                return Ok();                
             }
 
             // Crear un nuevo carrito de compras
@@ -165,6 +169,7 @@ namespace WebApiStore.Controllers
 
             //var infoDTO2 = mapper.Map<OrderShoppingCartInfoDTO>(order);
             //return new CreatedAtRouteResult("AddToShoppingCart", infoDTO2);
+            logger.LogInformation("Se agregó correctamente");
             return Ok();
         }
 
@@ -199,6 +204,7 @@ namespace WebApiStore.Controllers
             
             dbContext.Entry(order).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return NoContent();
         }
 
@@ -240,6 +246,7 @@ namespace WebApiStore.Controllers
 
             dbContext.Entry(order).State = EntityState.Modified;
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return Ok($"El estatus de pedido fue cambiado a {order.Status}");
         }
 
@@ -263,6 +270,7 @@ namespace WebApiStore.Controllers
 
             dbContext.Remove(shoppingCart);
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se eliminó correctamente");
             return Ok();
         }
 
@@ -301,6 +309,7 @@ namespace WebApiStore.Controllers
 
             dbContext.Remove(shoppingCart.OrdersProducts[index]);
             await dbContext.SaveChangesAsync();
+            logger.LogInformation("Se modificó correctamente");
             return Ok();
         }
     }
