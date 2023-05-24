@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using WebApiStore.DTOs.User;
+using WebApiStore.Services;
 
 namespace WebApiStore.Controllers
 {
@@ -17,16 +19,23 @@ namespace WebApiStore.Controllers
         private readonly UserManager<IdentityUser> userManager;
         private readonly IConfiguration configuration;
         private readonly SignInManager<IdentityUser> signInManager;
+        private readonly HashService hashService;
+        private readonly IDataProtector dataProtector;
 
         public UsersController(
             UserManager<IdentityUser> userManager,
             IConfiguration configuration,
-            SignInManager<IdentityUser> signInManager
+            SignInManager<IdentityUser> signInManager,
+            IDataProtectionProvider dataProtectionProvider,
+            HashService hashService
         )
         {
             this.userManager = userManager;
             this.configuration = configuration;
             this.signInManager = signInManager;
+            this.hashService = hashService;
+            // string de propósito
+            dataProtector = dataProtectionProvider.CreateProtector("ASDdscgrnSMbfk>X%fgs-+");
         }
 
         [HttpPost("register")]
@@ -102,6 +111,49 @@ namespace WebApiStore.Controllers
             var user = await userManager.FindByNameAsync(editAdmin.UserName);
             await userManager.RemoveClaimAsync(user, new Claim("admin", "true"));
             return NoContent();
+        }
+
+        [HttpGet("hash/{plainText}")]
+        public ActionResult ToHash(string plainText)
+        {
+            var hash1 = hashService.Hash(plainText);
+            var hash2 = hashService.Hash(plainText);
+            return Ok(new
+            {
+                PlainText = plainText,
+                Hash1 = hash1,
+                Hash2 = hash2
+            });
+        }
+
+        [HttpGet("Encrypt/{plainText}")]
+        public ActionResult Encrypt(string plainText)
+        {
+            var cipherText = dataProtector.Protect(plainText);
+            var decryptedText = dataProtector.Unprotect(cipherText);
+
+            return Ok(new
+            {
+                plainText = plainText,
+                cipherText = cipherText,
+                decryptedText = decryptedText
+            });
+        }
+
+        [HttpGet("EncryptByTime/{plainText}")]
+        public ActionResult EncryptByTime(string plainText)
+        {
+            var limitedByTime = dataProtector.ToTimeLimitedDataProtector();
+
+            var cipherText = limitedByTime.Protect(plainText, lifetime: TimeSpan.FromSeconds(5));
+            Thread.Sleep(TimeSpan.FromSeconds(6));
+            var decryptedText = limitedByTime.Unprotect(cipherText);
+            return Ok(new
+            {
+                plainText = plainText,
+                cipherText = cipherText,
+                decryptedText = decryptedText
+            });
         }
 
         private async Task<AuthenticationResponse> BuildToken(UserCredentials userCredentials)

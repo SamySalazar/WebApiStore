@@ -23,6 +23,7 @@ namespace WebApiStore.DTOs.Product
         public IFormFile Image { get; set; }
 
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "El valor debe ser mayor que cero.")]
         public int Stock { get; set; }
     }
 }

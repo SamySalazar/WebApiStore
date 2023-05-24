@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using WebApiStore.Filters;
 using WebApiStore.Services;
 using WebApiStore.Services.EmailService;
 
@@ -22,7 +23,10 @@ namespace WebApiStore
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers().AddJsonOptions(x =>
+            services.AddControllers(options =>
+            {
+                options.Filters.Add(typeof(ExceptionFilter));
+            }).AddJsonOptions(x =>
                 x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles
             ).AddNewtonsoftJson();
 
@@ -74,6 +78,7 @@ namespace WebApiStore
                     }
                 });
             });
+            // AutoMapper
             services.AddAutoMapper(typeof(Startup));
 
             // Servicio para controlar archivos
@@ -93,6 +98,22 @@ namespace WebApiStore
             {
                 options.AddPolicy("Admin", policy => policy.RequireClaim("admin"));
             });
+
+            // Filtros personalizados y globales(Exception)
+            services.AddTransient<ActionFilter>();
+
+            // CORS
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins("https://www.apirequest.io").AllowAnyMethod().AllowAnyHeader();
+                });
+            });
+
+            // Encriptación
+            services.AddDataProtection();
+            services.AddTransient<HashService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -108,6 +129,9 @@ namespace WebApiStore
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            //CORS
+            app.UseCors();
 
             app.UseAuthorization();
 
