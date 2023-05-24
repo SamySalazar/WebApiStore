@@ -140,22 +140,6 @@ namespace WebApiStore.Controllers
             });
         }
 
-        [HttpGet("EncryptByTime/{plainText}")]
-        public ActionResult EncryptByTime(string plainText)
-        {
-            var limitedByTime = dataProtector.ToTimeLimitedDataProtector();
-
-            var cipherText = limitedByTime.Protect(plainText, lifetime: TimeSpan.FromSeconds(5));
-            Thread.Sleep(TimeSpan.FromSeconds(6));
-            var decryptedText = limitedByTime.Unprotect(cipherText);
-            return Ok(new
-            {
-                plainText = plainText,
-                cipherText = cipherText,
-                decryptedText = decryptedText
-            });
-        }
-
         private async Task<AuthenticationResponse> BuildToken(UserCredentials userCredentials)
         {
             // Estos claims se añaden al token y se podrán leer
